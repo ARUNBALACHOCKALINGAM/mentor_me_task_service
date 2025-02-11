@@ -1,17 +1,14 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const taskController = require('../controllers/task.controller');
+const taskController = require("../controllers/task.controller");
+const authMiddleware = require("../middleware/auth.middleware"); // Import middleware
 
-// Get all tasks
-router.get('/', taskController.getTasks);
-
-// Create new task
-router.post('/', taskController.createTask);
-
-// Update task status
-router.patch('/status/:taskId', taskController.updateStatus);
-
-// Update task details
-router.put('/update/:taskId', taskController.updateDetails);
+router.get("/user", authMiddleware, taskController.getTasks);
+router.post("/",authMiddleware,taskController.getAllLevels);
+router.post("/level",authMiddleware,taskController.getAllTasksByLevel);
+router.post("/", authMiddleware, taskController.createTask);
+router.get("/:taskId", authMiddleware, taskController.getTaskDetails);
+router.patch("/status/:taskId", authMiddleware, taskController.updateStatus);
+router.put("/update/:taskId", authMiddleware, taskController.updateDetails);
 
 module.exports = router;

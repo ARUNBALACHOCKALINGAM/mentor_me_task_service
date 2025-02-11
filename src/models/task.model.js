@@ -12,13 +12,17 @@ const taskSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['todo', 'inprogress', 'completed'],
-    default: 'todo'
+    enum: ['Todo', 'Inprogress', 'Completed'],
+    default: 'Todo'
   },
   difficulty: {
     type: String,
     enum: ['Easy', 'Medium', 'Hard'],
-    required: false
+    required: true
+  },
+  points: {  
+    type: Number,
+    required: true
   },
   resources: [{
     name: String,
@@ -26,29 +30,23 @@ const taskSchema = new mongoose.Schema({
   }],
   userId: {
     type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
     required: false
   },
-  subTasks:{
-    type: [mongoose.Schema.Types.ObjectId],
-    required: false,
-    default:[]
-  },
-  level: {
-    type: Number,
-    required: false
-  },
-  track: {
+  subTasks: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Task",
+    default: []
+  }],
+  type: {
     type: String,
-    required: true
+    enum: ["default", "mentor"],
+    default: "default"
   },
-  createdAt: {
-    type: Date,
-    default: Date.now
-  },
-  updatedAt: {
-    type: Date,
-    default: Date.now
+  level:{
+    type: String,
+    ref: "Level"
   }
-});
+}, { timestamps: true }); // ✅ Enables createdAt & updatedAt automatically
 
 module.exports = mongoose.model('Task', taskSchema);
