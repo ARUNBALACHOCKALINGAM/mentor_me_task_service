@@ -19,6 +19,10 @@ const activitySchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     required: true
   },
+  username:{
+    type: String,
+    required:true
+  },
   createdAt: {
     type: Date,
     default: Date.now
