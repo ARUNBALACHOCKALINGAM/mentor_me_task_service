@@ -4,6 +4,11 @@ const Level = require('../models/level.model');
 const Activity = require('../models/activity.model');
 const fetchUserDetails = require('../utils/user');
 
+const multer = require('multer');
+const upload = multer({ storage: multer.memoryStorage() }); 
+
+
+
 connectDb();
 
 const taskController = {
@@ -55,59 +60,62 @@ const taskController = {
       res.status(500).json({ message: error.message });
     }
   },
+  // Create a task
+  createTask: [
+    upload.array('resources'), // Handle multiple file uploads
+    async (req, res) => {
+      try {
+        const { name, description, difficulty, level, track, type, subTasks, points, parentTaskId } = req.body;
 
-  // Create a new task
-  createTask: async (req, res) => {
-    try {
-    
-      const { name, description, difficulty, resources, level, track, type, subTasks, points, parentTaskId } = req.body;
-      
+        // Map uploaded files to the resources array
+        const resources = req.files.map(file => ({
+          name: file.originalname,
+          data: file.buffer,
+          size: file.size,
+          type: file.mimetype
+        }));
 
-      const newTask = new Task({
-        name,
-        description,
-        difficulty,
-        resources,
-        userId: req.user.id,
-        level,
-        track,
-        type,
-        subTasks,
-        points
-      });
+        const newTask = new Task({
+          name,
+          description,
+          difficulty,
+          resources,
+          userId: req.user.id,
+          level,
+          track,
+          type,
+          subTasks,
+          points
+        });
 
-      const task = await newTask.save();
+        const task = await newTask.save();
 
-    
-
-      if (parentTaskId) {
-        const parentTask = await Task.findById(parentTaskId);
-        console.log(parentTask)
-        if (!parentTask) {
-          return res.status(404).json({ message: 'Task not found' });
+        if (parentTaskId) {
+          const parentTask = await Task.findById(parentTaskId);
+          if (!parentTask) {
+            return res.status(404).json({ message: 'Task not found' });
+          }
+          parentTask.subTasks.push(task);
+          await parentTask.save();
         }
-        parentTask.subTasks.push(task)
 
-        const updatedTask = await parentTask.save()
+        const user = await fetchUserDetails(req.user.id);
+
+        // Create activity record
+        await Activity.create({
+          taskId: task._id,
+          type: 'history',
+          content: 'Task created',
+          userId: req.user.id,
+          username: user.username
+        });
+
+        res.status(201).json(task);
+      } catch (error) {
+        res.status(400).json({ message: error.message });
       }
-
-      const user = await fetchUserDetails(req.user.id);
-
-      // Create activity record
-      await Activity.create({
-        taskId: task._id,
-        type: 'history',
-        content: 'Task created',
-        userId: req.user.id,
-        username: user.username
-      });
-
-      res.status(201).json(task);
-    } catch (error) {
-      res.status(400).json({ message: error.message });
     }
-  },
-
+  ],
 
 
   // Update task status
@@ -141,7 +149,8 @@ const taskController = {
         userId: req.user.id,
         username: user.username 
       });
-  
+
+      
       res.json(updatedTask);
     } catch (error) {
       console.error('Error in updateStatus:', error);
@@ -149,40 +158,53 @@ const taskController = {
     }
   },
   // Update task details
-  updateDetails: async (req, res) => {
-    try {
-      const task = await Task.findById(req.params.taskId);
-    
+  updateDetails: [
+    upload.array('resources'), // Handle multiple file uploads
+    async (req, res) => {
+      try {
+        const task = await Task.findById(req.params.taskId);
 
-      if (!task) {
-        return res.status(404).json({ message: 'Task not found' });
-      }
-
-      ['name', 'description', 'difficulty', 'resources', 'points', 'type'].forEach(field => {
-        if (req.body[field] !== undefined) {
-          task[field] = req.body[field];
+        if (!task) {
+          return res.status(404).json({ message: 'Task not found' });
         }
-      });
 
-      const updatedTask = await task.save();
+        // Update task fields
+        ['name', 'description', 'difficulty', 'points', 'type'].forEach(field => {
+          if (req.body[field] !== undefined) {
+            task[field] = req.body[field];
+          }
+        });
 
-      const user = await fetchUserDetails(req.user.id);
-      console.log(user)
+        // Update resources if files are uploaded
+        if (req.files && req.files.length > 0) {
+          task.resources = req.files.map(file => ({
+            name: file.originalname,
+            data: file.buffer,
+            size: file.size,
+            type: file.mimetype
+          }));
+        }
 
-      // Create activity record
-      await Activity.create({
-        taskId: task._id,
-        type: 'history',
-        content: 'Task details updated',
-        userId: req.user.id,
-        username: user.username
-      });
+        const updatedTask = await task.save();
 
-      res.json(updatedTask);
-    } catch (error) {
-      res.status(400).json({ message: error.message });
+        const user = await fetchUserDetails(req.user.id);
+
+        // Create activity record
+        await Activity.create({
+          taskId: task._id,
+          type: 'history',
+          content: 'Task details updated',
+          userId: req.user.id,
+          username: user.username
+        });
+
+        res.json(updatedTask);
+      } catch (error) {
+        res.status(400).json({ message: error.message });
+      }
     }
-  },
+  ],
+
   // Get task details by ID
   getTaskDetails: async (req, res) => {
     try {
