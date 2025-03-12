@@ -3,8 +3,9 @@ const express = require("express");
 const cors = require("cors");
 const taskRoutes = require("./routes/task.routes");
 const activityRoutes = require("./routes/activity.routes");
+const fileRoutes = require("./routes/file.routes");
 const cookieParser = require("cookie-parser");
-
+const path = require('path')
 const app = express();
 
 // ✅ Configure CORS properly
@@ -21,6 +22,8 @@ app.use(cookieParser());
 // Routes
 app.use("/tasks", taskRoutes);
 app.use("/activity", activityRoutes);
+app.use("/files", fileRoutes);
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // Error handling middleware
 app.use((err, req, res, next) => {

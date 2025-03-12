@@ -53,8 +53,6 @@ const activityController = {
     try {
       const { taskId } = req.params;
 
-      console.log(taskId)
-
       // Validate taskId as a valid Mongoose ObjectId
       if (!mongoose.Types.ObjectId.isValid(taskId)) {
         return res.status(400).json({ message: "Invalid task ID" });
